@@ -12,6 +12,7 @@ This repo will contains the following commonly used libraries:
 ## Requirements
 - go version 1.11+: this repo use go moudule(feature begins in go 1.11) to manage dependencies.
 - docker version > 1.13
+- Do not clone this repo into $GOPATH: becasue go module feature currently has this limitation
 
 ## Getting started
 
