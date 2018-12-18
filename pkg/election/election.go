@@ -2,6 +2,8 @@ package election
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -64,7 +66,7 @@ func NewElection(name string) (*ElectionInfo, error) {
 
 func (ei *ElectionInfo) Start() {
 	// A ticker chan used to refresh key lease every ttl/4
-	tickChan := time.NewTicker(time.Duration(ei.conf.LeaderTTL / 4)).C
+	tickChan := time.NewTicker(time.Second * time.Duration(ei.conf.LeaderTTL/4)).C
 	ei.watchLeader()
 	for {
 		select {
@@ -121,7 +123,7 @@ func (ei *ElectionInfo) acquire() error {
 	ctx, cancel := context.WithTimeout(context.Background(), ei.conf.Timeout)
 	defer cancel()
 	// Use Txn instead of Put will make sure data consitent in different election client.
-	_, err := ei.client.Txn(ctx).
+	txnResp, err := ei.client.Txn(ctx).
 		// CreateRevision = 0 means this key is not existed
 		If(clientv3.Compare(clientv3.CreateRevision(ei.conf.LeaderKey), "=", 0)).
 		// Put k/v if leader key is not existed
@@ -131,6 +133,21 @@ func (ei *ElectionInfo) acquire() error {
 	if err != nil {
 		log.Println("Error while putting election key:", err)
 		return err
+	}
+	if !txnResp.Succeeded {
+		getResp := (*clientv3.GetResponse)(txnResp.Responses[0].GetResponseRange())
+		if len(getResp.Kvs) == 0 {
+			errmsg := fmt.Sprintf("Leader key is not existed")
+			log.Println(errmsg)
+			return errors.New(errmsg)
+		}
+		v := string(getResp.Kvs[0].Value)
+		ei.leaderName = v
+		if ei.name == v {
+			ei.isLeader = true
+		} else {
+			ei.isLeader = false
+		}
 	}
 	return nil
 }
