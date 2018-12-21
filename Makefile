@@ -24,11 +24,11 @@ build-image: build
 
 build: fmt
 	@echo "build $@"
-	 ${BUILD_OPTS} go build ${LDFLAGS} -v -o ./bin/salmon ./
+	 ${BUILD_OPTS} go build ${LDFLAGS} -mod vendor -v -o ./bin/salmon ./
 
 build-mac: fmt
 	@echo "build $@"
-	 ${BUILD_OPTS_MAC} go build ${LDFLAGS} -v -o ./bin/salmon ./
+	 ${BUILD_OPTS_MAC} go build ${LDFLAGS} -mod vendor -v -o ./bin/salmon ./
 
 fmt:
 	@echo "fmt $@"
